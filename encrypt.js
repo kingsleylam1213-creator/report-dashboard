@@ -139,7 +139,7 @@ async function go(){
 </html>`;
 }
 
-const REPO = 'D:/CLAUDE CODE/report-dashboard';
+const REPO = __dirname.replace(/\\/g, '/');
 const tasks = [
   { file: 'index.html',         pwd: 'sy18929531199',  title: '平台利润看板' },
   { file: 'sales-channel.html', pwd: 'sy18929531199',  title: '非亚渠道业绩报告' },
