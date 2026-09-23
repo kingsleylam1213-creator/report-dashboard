@@ -217,6 +217,9 @@
   .table-wrap td:first-child { left: 0; z-index: 1; }
   .table-wrap td:nth-child(2) { left: 70px; z-index: 1; }
   .table-wrap td:nth-child(3) { left: 140px; z-index: 1; }
+  /* 店铺维度底部汇总行：仅冻结说明单元格，避免合计数字套用前三列的冻结位置。 */
+  #table-all-shops tfoot td { position: static; background: #E8F1FF; }
+  #table-all-shops tfoot td:first-child { position: sticky; left: 0; z-index: 5; background: #E8F1FF; }
   /* 横向滚动表格样式 - 与明细数据表格完全一致 */
   #table-platform-site-daily,
   #table-platform-op-daily {
@@ -2268,13 +2271,46 @@ function initShopDimTable() {
     });
   }
 
+  // __SHOP_FILTER_TOTALS_V1__
+  // 汇总当前筛选结果；上方卡片、表格底部和 CSV 共用同一套口径。
+  function _shopMonthAvgTotal(row) {
+    var total = Number(row.cur_avg) || 0;
+    (row.hist_avgs || []).forEach(function(v) { total += Number(v) || 0; });
+    return total;
+  }
+
+  function _shopTotals(rows) {
+    var totals = {
+      cur: 0,
+      hist: histMonths.map(function() { return 0; }),
+      allMonths: 0,
+      exitCount: 0,
+      transferCount: 0,
+      mom: null
+    };
+    rows.forEach(function(r) {
+      totals.cur += Number(r.cur_avg) || 0;
+      if (r.exiting) totals.exitCount++;
+      if (r.transferring) totals.transferCount++;
+      (r.hist_avgs || []).forEach(function(v, i) {
+        if (i < totals.hist.length) totals.hist[i] += Number(v) || 0;
+      });
+      totals.allMonths += _shopMonthAvgTotal(r);
+    });
+    if (totals.hist.length && totals.hist[0] !== 0) {
+      totals.mom = (totals.cur - totals.hist[0]) / totals.hist[0] * 100;
+    }
+    return totals;
+  }
+
   // 下载当前筛选结果为 CSV（UTF-8 BOM，Excel 可直接打开）
   window._shopDownload = function() {
     var filtered = _shopFilter();
+    var totals = _shopTotals(filtered);
     var headers = ['排名','店铺','运营人员','渠道','站点','组别',
                    curLabel + '月日均(USD/天)'];
     histMonths.forEach(function(h) { headers.push(h.label + '月日均(USD/天)'); });
-    headers.push('环比','公司主体','是否保留','UK低申报史','DE低申报史','备注','状态');
+    headers.push('环比','公司主体','是否保留','UK低申报史','DE低申报史','备注','状态','汇总数据-所列月份日均合计(USD/天)');
     var csvRows = [headers];
     filtered.forEach(function(r, idx) {
       var status = r.exiting ? '退出中' : r.transferring ? '转移中' : '正常';
@@ -2282,9 +2318,17 @@ function initShopDimTable() {
       var dataRow = [idx + 1, r.name, r.operator || '', r.platform || '', r.site || '', r.group || '',
                      r.cur_avg != null ? r.cur_avg : ''];
       (r.hist_avgs || []).forEach(function(v) { dataRow.push(v != null ? v : ''); });
-      dataRow.push(mom, r.company || '', r.retain || '', r.uk_low_dec || '', r.de_low_dec || '', r.note || '', status);
+      dataRow.push(mom, r.company || '', r.retain || '', r.uk_low_dec || '', r.de_low_dec || '', r.note || '', status,
+                   parseFloat(_shopMonthAvgTotal(r).toFixed(2)));
       csvRows.push(dataRow);
     });
+    var totalRow = new Array(headers.length).fill('');
+    totalRow[0] = '筛选汇总（' + filtered.length + '家）';
+    totalRow[6] = parseFloat(totals.cur.toFixed(2));
+    totals.hist.forEach(function(v, i) { totalRow[7 + i] = parseFloat(v.toFixed(2)); });
+    totalRow[7 + histMonths.length] = totals.mom === null ? '' : parseFloat(totals.mom.toFixed(2)) + '%';
+    totalRow[headers.length - 1] = parseFloat(totals.allMonths.toFixed(2));
+    csvRows.push(totalRow);
     var csv = csvRows.map(function(row) {
       return row.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
     }).join('\r\n');
@@ -2299,18 +2343,11 @@ function initShopDimTable() {
 
   function _shopRenderTable() {
     var filtered = _shopFilter();
+    var totals = _shopTotals(filtered);
 
     // ── 汇总卡片 ──
     var summaryEl = document.getElementById('shops-summary');
     if (summaryEl) {
-      var sumCur = 0, exitCount = 0, transferCount = 0;
-      var sumHist = histMonths.map(function() { return 0; });
-      filtered.forEach(function(r) {
-        sumCur += r.cur_avg || 0;
-        if (r.exiting) exitCount++;
-        if (r.transferring) transferCount++;
-        (r.hist_avgs || []).forEach(function(v, i) { sumHist[i] += v || 0; });
-      });
       function kpiCard(label, value, isMain) {
         return '<div style="background:' + (isMain ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.05)')
           + ';border:1px solid ' + (isMain ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)')
@@ -2323,16 +2360,16 @@ function initShopDimTable() {
           + '</div>';
       }
       var histCards = histMonths.map(function(h, i) {
-        return kpiCard(h.label + '日均销售额', sumHist[i], false);
+        return kpiCard(h.label + '日均销售额', totals.hist[i], false);
       }).join('');
       var countNotes = [];
-      if (exitCount > 0) countNotes.push('<span style="color:#F87171;">' + exitCount + ' 家退出中</span>');
-      if (transferCount > 0) countNotes.push('<span style="color:#FBBF24;">' + transferCount + ' 家转移中</span>');
+      if (totals.exitCount > 0) countNotes.push('<span style="color:#F87171;">' + totals.exitCount + ' 家退出中</span>');
+      if (totals.transferCount > 0) countNotes.push('<span style="color:#FBBF24;">' + totals.transferCount + ' 家转移中</span>');
       var shopCountNote = countNotes.length > 0 ? '，其中 ' + countNotes.join(' / ') : '';
       summaryEl.innerHTML = '<div style="margin:8px 0 12px;">'
         + '<div style="font-size:12px;color:#6B7280;margin-bottom:8px;">已筛选 <b style="color:#E2E8F0;">' + filtered.length + '</b> 家店铺' + shopCountNote + '</div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:10px;">'
-        + kpiCard(curLabel + '日均销售额', sumCur, true)
+        + kpiCard(curLabel + '日均销售额', totals.cur, true)
         + histCards
         + '</div>'
         + '</div>';
@@ -2345,9 +2382,10 @@ function initShopDimTable() {
       + '<th style="width:54px;">排名</th><th>店铺</th><th>运营人员</th><th>渠道</th><th>站点</th><th>组别</th>'
       + '<th style="text-align:right;">' + curLabel + '日均<br/><span style="font-weight:normal;font-size:12px;">(USD/天)</span></th>'
       + histThs + '<th style="text-align:right;">环比</th><th>公司主体</th><th>UK低申报史</th><th>DE低申报史</th><th>备注</th>'
+      + '<th style="text-align:right;min-width:130px;">汇总数据<br/><span style="font-weight:normal;font-size:11px;">所列月份日均合计</span></th>'
       + '</tr></thead><tbody>';
     if (filtered.length === 0) {
-      html += '<tr><td colspan="' + (11 + histMonths.length) + '" style="text-align:center;color:#9CA3AF;padding:24px;">暂无数据</td></tr>';
+      html += '<tr><td colspan="' + (13 + histMonths.length) + '" style="text-align:center;color:#9CA3AF;padding:24px;">暂无数据</td></tr>';
     }
     filtered.forEach(function(row, idx) {
       var rank = idx + 1;
@@ -2366,6 +2404,7 @@ function initShopDimTable() {
       var histTds = (row.hist_avgs || []).map(function(v) {
         return '<td style="text-align:right;">' + (v > 0 ? fmt(v) : '<span style="color:#9CA3AF;">–</span>') + '</td>';
       }).join('');
+      var rowMonthAvgTotal = _shopMonthAvgTotal(row);
       var exitTag = row.exiting ? '<span style="font-size:10px;color:#F87171;font-weight:400;margin-left:5px;">退出中</span>' : '';
       var transferTag = row.transferring ? '<span style="font-size:10px;color:#FBBF24;font-weight:400;margin-left:5px;">转移中</span>' : '';
       var subTag = (row.subscription_site && row.subscription_site !== '' && row.subscription_site !== 'nan')
@@ -2398,9 +2437,25 @@ function initShopDimTable() {
         + '<td style="font-size:12px;text-align:center;">' + (row.uk_low_dec || '<span style="color:#9CA3AF;">–</span>') + '</td>'
         + '<td style="font-size:12px;text-align:center;">' + (row.de_low_dec || '<span style="color:#9CA3AF;">–</span>') + '</td>'
         + '<td style="font-size:12px;color:#94A3B8;">' + (row.note || '<span style="color:#9CA3AF;">–</span>') + '</td>'
+        + '<td class="num-positive" style="text-align:right;font-weight:700;background:rgba(59,130,246,0.06);">' + (rowMonthAvgTotal > 0 ? fmt(rowMonthAvgTotal) : '<span style="color:#9CA3AF;">–</span>') + '</td>'
         + '</tr>';
     });
-    html += '</tbody></table>';
+    var totalMomHtml = totals.mom === null
+      ? '<span style="color:#9CA3AF;">–</span>'
+      : totals.mom > 0 ? '<span style="color:#F85149;">↑' + fmt(totals.mom) + '%</span>'
+      : totals.mom < 0 ? '<span style="color:#3FB950;">↓' + fmt(Math.abs(totals.mom)) + '%</span>'
+      : '<span style="color:#9CA3AF;">→0.00%</span>';
+    var totalHistTds = totals.hist.map(function(v) {
+      return '<td style="text-align:right;">' + fmt(v) + '</td>';
+    }).join('');
+    html += '</tbody><tfoot><tr style="position:sticky;bottom:0;z-index:4;background:#E8F1FF;color:#1E3A5F;font-weight:700;border-top:2px solid #60A5FA;box-shadow:0 -2px 8px rgba(30,58,95,0.12);">'
+      + '<td colspan="6" style="text-align:left;white-space:nowrap;">筛选汇总（' + filtered.length + ' 家店铺）<br/><span style="font-size:10px;font-weight:400;color:#64748B;">随渠道、站点、组别、状态、主体筛选自动更新</span></td>'
+      + '<td style="text-align:right;color:#2563EB;">' + fmt(totals.cur) + '</td>'
+      + totalHistTds
+      + '<td style="text-align:right;">' + totalMomHtml + '</td>'
+      + '<td colspan="4" style="font-size:11px;color:#64748B;">当前筛选结果的月日均总和</td>'
+      + '<td style="text-align:right;color:#2563EB;font-size:14px;">' + fmt(totals.allMonths) + '</td>'
+      + '</tr></tfoot></table>';
     tableEl.innerHTML = html;
     var prevLabel = histMonths.length > 0 ? histMonths[0].label : '';
     var countNote = filtered.length < allRows.length ? ' (已筛选 ' + filtered.length + '/' + allRows.length + ' 家)' : '';
