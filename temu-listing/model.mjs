@@ -1,12 +1,27 @@
 export const key = (site, sku) => `${site}\u0001${sku}`;
 export const total = inv => inv ? inv.bands.reduce((a, b) => a + b, 0) : null;
 export const oldUnits = inv => inv ? inv.bands.slice(2).reduce((a, b) => a + b, 0) : 0;
+export const UNKNOWN_COMPANY = '__unmatched__';
 
 export function createModel(data) {
   const products = new Map(data.products.map(p => [p.sku, p]));
   const inventory = new Map(data.inventory.map(v => [key(v.pool, v.sku), { ...v, physicalKey: key(v.pool, v.sku) }]));
   const sites = new Map(data.sites.map(s => [s.code, s]));
   const shops = new Map(data.shops.map(s => [s.name, new Set(s.sites)]));
+  const shopInfo = new Map(data.shops.map(s => [s.name, s]));
+  const companyOf = shop => shopInfo.get(shop)?.company || UNKNOWN_COMPANY;
+  const scopeOf = scope => typeof scope === 'string' ? { shop: scope } : scope || {};
+  const matchesShop = (shop, scope = {}) => {
+    const f = scopeOf(scope);
+    return (!f.shop || shop === f.shop) && (!f.company || companyOf(shop) === f.company);
+  };
+  const shopsFor = (scope = {}) => data.shops.filter(s => matchesShop(s.name, scope));
+  const companySites = new Map();
+  for (const s of data.shops) {
+    const company = companyOf(s.name);
+    if (!companySites.has(company)) companySites.set(company, new Set());
+    s.sites.forEach(site => companySites.get(company).add(site));
+  }
   const direct = new Map(), component = new Map(), unresolved = new Map();
   const add = (map, k, value) => { if (!map.has(k)) map.set(k, []); map.get(k).push(value); };
   for (const l of data.listings) {
@@ -49,18 +64,20 @@ export function createModel(data) {
   const used = new Set([...pairs.values()].map(r => r.sku));
   for (const p of products.values()) if (!used.has(p.sku)) make('未分配', p.sku).unassigned = true;
   const rows = [...pairs.values()];
-  const linksFor = (r, shop = '') => {
-    const filter = ls => shop ? ls.filter(l => l.shop === shop) : ls;
+  const linksFor = (r, scope = '') => {
+    const filter = ls => ls.filter(l => matchesShop(l.shop, scope));
     return { direct: filter(r.unmatchedLink ? [r.unmatchedLink].filter(l => l.active) : direct.get(key(r.site, r.sku)) || []),
       bundle: filter(component.get(key(r.site, r.sku)) || []),
       unresolved: filter(unresolved.get(r.sku) || []) };
   };
-  function status(r, shop = '') {
-    const links = linksFor(r, shop);
+  function status(r, scope = '') {
+    const f = scopeOf(scope);
+    const links = linksFor(r, f);
     if (r.site === '待确认' || r.unmatchedLink) return { code: 'check', label: '待核对', reason: r.unmatchedLink ? '在售记录缺少产品SKU关联' : '在售记录缺少站点' };
     if (links.direct.length) return { code: 'active', label: r.product.kind === 'bundle' ? '组合在售' : '在售', reason: `${links.direct.length} 个在售链接` };
     if (links.bundle.length) return { code: 'bundle', label: '仅组合在售', reason: '作为组合成分在售，尚无单品在售链接' };
-    if (shop && r.site !== '未分配' && !shops.get(shop)?.has(r.site)) return { code: 'check', label: '站点待确认', reason: '源表未见该店铺在此站点的经营记录' };
+    const eligible = f.shop ? matchesShop(f.shop, f) && shops.get(f.shop)?.has(r.site) : f.company ? companySites.get(f.company)?.has(r.site) : true;
+    if ((f.shop || f.company) && r.site !== '未分配' && !eligible) return { code: 'check', label: '站点待确认', reason: '源表未见所选店铺范围在此站点的经营记录' };
     if (total(r.inv) > 0 && links.unresolved.length) return { code: 'check', label: '站点待核对', reason: '此SKU有未归属站点的在售记录，请先补齐站点' };
     if (total(r.inv) > 0) return { code: 'pending', label: '有货待上架', reason: '此站点有库存，所选店铺范围未匹配到单品或组合在售链接' + (r.product.status === '不可用' ? '；产品主表标记不可用，请先核对产品状态' : '') };
     return { code: 'unlisted', label: '未上架', reason: r.unassigned ? '产品库已有SKU，尚无库存或刊登记录' : '无在售链接，暂无已知正库存' };
@@ -95,9 +112,10 @@ export function createModel(data) {
       }
     }
     for (const row of candidates) {
+      if (row.unmatchedLink && !matchesShop(row.unmatchedLink.shop, filters)) continue;
       if (filters.category && row.product.category !== filters.category && !row.product.category.startsWith(filters.category + '/')) continue;
       if (q && !`${row.sku} ${row.product.spu} ${row.product.name} ${row.product.category}`.toLowerCase().includes(q)) continue;
-      const s = status(row, filters.shop);
+      const s = status(row, filters);
       if (filters.status && s.code !== filters.status) continue;
       if (filters.stock === 'positive' && !(total(row.inv) > 0)) continue;
       if (filters.stock === 'old' && !oldUnits(row.inv)) continue;
@@ -107,16 +125,16 @@ export function createModel(data) {
     }
     return result;
   }
-  return { data, products, inventory, sites, shops, rows, linksFor, status, capacity, select };
+  return { data, products, inventory, sites, shops, shopInfo, companyOf, matchesShop, shopsFor, rows, linksFor, status, capacity, select };
 }
 
-export function summarize(model, rows, shop = '') {
+export function summarize(model, rows, scope = '') {
   const physical = new Map(), pendingPhysical = new Map();
   const counts = { active: 0, bundle: 0, pending: 0, check: 0, unlisted: 0 };
   const styles = new Set(), skus = new Set(), activeSkus = new Set();
   for (const r of rows) {
     if (!r.unmatchedLink) { styles.add(r.product.spu); skus.add(r.sku); }
-    const status = model.status(r, shop).code;
+    const status = model.status(r, scope).code;
     counts[status]++;
     if (status === 'active' || status === 'bundle') activeSkus.add(r.sku);
     if (r.inv) {

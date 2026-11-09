@@ -7,8 +7,8 @@
   <meta name="description" content="TEMU多店铺刊登、站点库存与库龄分析">
   <title>TEMU 运营管理台</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%233c5b70'/%3E%3Cpath d='M10 13h20v5h-7v14h-6V18h-7z' fill='%23f6f3e9'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css?v=ba462a7d8850">
-  <script type="module" src="./app.js?v=ba462a7d8850"></script>
+  <link rel="stylesheet" href="./style.css?v=c9055288b551">
+  <script type="module" src="./app.js?v=c9055288b551"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -31,6 +31,7 @@
       <div class="page-heading"><div><div class="eyebrow">TEMU OPERATIONS</div><h1 id="page-title">刊登与库存总览</h1><p id="page-subtitle">从库存到上架，找到每一个待补齐的销售机会。</p></div><div class="heading-actions"><button id="export-button" class="button secondary">↓ 导出筛选结果</button><button id="update-button" hidden class="button primary">⟳ 一键更新</button></div></div>
       <div class="snapshot-line"><span class="data-dot"></span><span id="snapshot-label">正在连接数据…</span><span id="source-date" class="source-date"></span></div>
       <section class="filter-panel" id="filters" aria-label="数据筛选">
+        <label>注册主体<select id="filter-company"><option value="">全部注册主体</option></select></label>
         <label>站点<select id="filter-site"><option value="">全部站点</option></select></label>
         <label>店铺<select id="filter-shop"><option value="">全部店铺</option></select></label>
         <label>品类<select id="filter-category"><option value="">全部品类</option></select></label>
@@ -45,7 +46,7 @@
       <footer class="page-footer"><span>TEMU 运营管理台</span><span>库存按“库存池 + SKU”去重 · 数据以源表快照为准</span><button id="method-button">查看计算口径</button></footer>
     </main>
   </div>
-  <dialog id="upload-dialog"><form id="upload-form"><div class="dialog-heading"><div><div class="eyebrow">DATA IMPORT</div><h2>更新源数据</h2></div><button type="button" class="close-dialog icon-button" aria-label="关闭">×</button></div><p class="muted">选择需要替换的 Excel。没有选择的源表继续使用当前版本，三份表核对通过后一起生效。</p><label class="file-field"><span><b>产品信息表</b><small>单品、组合 SKU 与款式信息</small></span><input type="file" accept=".xlsx" name="products"></label><label class="file-field"><span><b>TEMU 在售链接</b><small>单品商品与组合商品工作表</small></span><input type="file" accept=".xlsx" name="listings"></label><label class="file-field"><span><b>万邑通库龄</b><small>仓库、SKU 与五个库龄段数量</small></span><input type="file" accept=".xlsx" name="inventory"></label><div id="upload-message" class="muted" role="status"></div><div class="dialog-footer"><button type="button" class="button secondary close-dialog">取消</button><button id="upload-submit" class="button primary" type="submit">上传并更新</button></div></form></dialog>
+  <dialog id="upload-dialog"><form id="upload-form"><div class="dialog-heading"><div><div class="eyebrow">DATA IMPORT</div><h2>更新源数据</h2></div><button type="button" class="close-dialog icon-button" aria-label="关闭">×</button></div><p class="muted">选择需要替换的 Excel。没有选择的源表继续使用当前版本，核对通过后一起生效。</p><label class="file-field"><span><b>产品信息表</b><small>单品、组合 SKU 与款式信息</small></span><input type="file" accept=".xlsx" name="products"></label><label class="file-field"><span><b>TEMU 在售链接</b><small>单品商品与组合商品工作表</small></span><input type="file" accept=".xlsx" name="listings"></label><label class="file-field"><span><b>万邑通库龄</b><small>仓库、SKU 与五个库龄段数量</small></span><input type="file" accept=".xlsx" name="inventory"></label><label class="file-field"><span><b>店铺主体关系</b><small>店铺简称、品牌/店铺与注册公司名称</small></span><input type="file" accept=".xlsx" name="entities"></label><div id="upload-message" class="muted" role="status"></div><div class="dialog-footer"><button type="button" class="button secondary close-dialog">取消</button><button id="upload-submit" class="button primary" type="submit">上传并更新</button></div></form></dialog>
   <dialog id="detail-dialog" class="wide-dialog"><div id="detail-content"></div></dialog>
   <dialog id="method-dialog"><div class="dialog-heading"><h2>计算口径</h2><button class="close-dialog icon-button" aria-label="关闭">×</button></div><div id="method-content"></div></dialog>
   <div id="toast" class="toast" role="status" hidden></div>

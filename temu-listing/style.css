@@ -90,7 +90,7 @@ p { line-height: 1.75; }
 .source-date { margin-left: auto; color: var(--muted); }
 .filter-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 14px 18px; margin-bottom: 22px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
 .filter-panel label { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: #43535d; font-size: .875rem; font-weight: 650; }
-.filter-panel label.search-label { grid-column: span 2; }
+.filter-panel label.search-label { grid-column: auto; }
 select, .search-input, input[type="text"], input[type="password"] { width: 100%; height: 44px; padding: 0 11px; border: 1px solid #b8c4c6; border-radius: 6px; background: #fdfcf8; color: var(--ink); font-size: 1rem; font-weight: 500; min-width: 0; }
 .search-input { display: flex; align-items: center; gap: 8px; }
 .search-input span { color: #5c6d77; font-size: 1.3rem; }
@@ -174,6 +174,24 @@ tbody tr:last-child td { border-bottom: 0; }
 .status.unlisted { color: #526168; background: #e8ebe7; border-color: #ccd4ce; }
 .status.check { color: #804849; background: #f0e2df; border-color: #dac2bd; }
 .shop-badge { display: inline-block; margin: 3px 4px 3px 0; padding: 3px 7px; border: 1px solid #cbd8d0; border-radius: 4px; background: #e9eee7; color: #3c5a48; font-size: .8125rem; font-weight: 600; }
+.shop-company { min-width: 220px; max-width: 310px; margin-bottom: 10px; white-space: normal; }
+.shop-company:last-child { margin-bottom: 0; }
+.shop-company-name { display: block; color: #405461; font-size: .875rem; font-weight: 650; line-height: 1.65; overflow-wrap: anywhere; }
+.company-cell { min-width: 220px; max-width: 340px; white-space: normal; overflow-wrap: anywhere; }
+.company-section { margin-bottom: 22px; }
+.company-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 18px 22px; }
+.company-card { min-width: 0; padding: 16px; border: 1px solid #d1d9d4; border-radius: 7px; background: #f4f5ef; }
+.company-title { display: block; max-width: 100%; padding: 0; border: 0; background: transparent; color: #314f64; font-size: 1rem; font-weight: 750; line-height: 1.7; text-align: left; overflow-wrap: anywhere; }
+.company-title:hover { text-decoration: underline; }
+.company-count { margin: 4px 0 12px; color: var(--muted); font-size: .8125rem; }
+.company-shops { display: flex; flex-wrap: wrap; gap: 8px; }
+.company-shop { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 38px; max-width: 100%; padding: 6px 10px; border: 1px solid #c7d3d5; border-radius: 5px; background: var(--paper); text-align: left; }
+.company-shop b { color: #334f62; font-size: .875rem; font-weight: 700; overflow-wrap: anywhere; }
+.company-shop small { color: var(--muted); font-size: .75rem; }
+.company-shop.selected { border-color: #648196; background: #e0e9ef; }
+.company-shop .registered-only { color: #785624; }
+.company-unmatched { border-color: #d7c3a7; background: #f4eee3; }
+.company-footnote { padding: 0 22px 20px; color: var(--muted); font-size: .8125rem; line-height: 1.8; }
 .site-label { color: #344f63; font-size: .9375rem; font-weight: 650; }
 .link-button { min-height: 34px; padding: 3px 0; border: 0; background: transparent; color: #315b78; font-size: .875rem; font-weight: 650; white-space: nowrap; }
 .sku-table th:first-child, .sku-table td:first-child { position: sticky; left: 0; z-index: 2; border-right: 1px solid #cbd2cf; box-shadow: 4px 0 6px -4px #5e737a60; }
@@ -201,6 +219,9 @@ tbody tr:last-child td { border-bottom: 0; }
 .matrix-table td { padding: 15px 12px; text-align: center; }
 .matrix-table .sticky-col { position: sticky; left: 0; z-index: 2; min-width: 250px; border-right: 1px solid #c4cecc; background: var(--paper); text-align: left; }
 .matrix-table th.sticky-col { z-index: 5; background: var(--table-head); }
+.matrix-table .company-header th { height: 3.25rem; padding-top: 10px; padding-bottom: 10px; top: 0; border-right: 1px solid #bdc9c6; }
+.matrix-table .shop-header th { top: 3.25rem; border-right: 1px solid #d0d8d4; }
+.matrix-table .company-header th:not([rowspan]) { color: #2d4e63; background: #dbe3e3; }
 .matrix-table tbody tr:nth-child(even) .sticky-col { background: var(--row-alt); }
 .matrix-table tbody tr:hover .sticky-col { background: var(--hover); }
 .matrix-table .product-cell { min-width: 210px; max-width: 250px; }
@@ -215,7 +236,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .matrix-scroll { max-height: 70vh; }
 
 .batch-heading { margin: 0 0 14px; color: #334b5b; font-size: 1rem; font-weight: 700; }
-.data-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 22px; }
+.data-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-bottom: 22px; }
 .source-card { min-width: 0; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
 .source-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 15px; border-radius: 8px; background: #e5ece7; color: #405f4e; font-size: 1.5rem; }
 .source-card h3 { margin: 0 0 9px; color: #314b5c; font-size: 1.0625rem; font-weight: 700; }
@@ -286,13 +307,12 @@ dialog h2 { margin: 6px 0; color: #2e4554; font-size: 1.5rem; font-weight: 750; 
 @media (min-width: 1760px) {
   main { padding: 34px 40px 0; }
   .kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .filter-panel { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(220px, 1.6fr) auto; }
-  .filter-panel label.search-label { grid-column: auto; }
 }
 @media (max-width: 1450px) {
   .section-grid, .store-grid { grid-template-columns: minmax(0, 1fr); }
   .donut-layout { grid-template-columns: 180px minmax(210px, 350px); gap: 32px; justify-content: center; }
   .quality-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .data-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 1100px) {
   .sidebar { position: sticky; inset: auto; top: 0; width: 100%; padding: 12px 20px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -335,6 +355,9 @@ dialog h2 { margin: 6px 0; color: #2e4554; font-size: 1.5rem; font-weight: 750; 
   .source-date { margin-left: 0; flex-basis: 100%; }
   .filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 16px; }
   .filter-panel label.search-label { grid-column: auto; }
+  .filter-panel label:has(#filter-company) { grid-column: 1 / -1; }
+  .company-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .company-footnote { padding: 0 16px 18px; }
   .reset-button { grid-column: 1 / -1; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .kpi { padding: 16px; }
