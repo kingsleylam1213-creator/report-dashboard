@@ -6,12 +6,21 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = v => v == null ? '—' : Number(v).toLocaleString('zh-CN');
 const percent = (v, n) => n > 0 ? `${(v / n * 100).toFixed(1)}%` : '—';
-const colors = ['#76a39c', '#638ac0', '#d9b66a', '#df946b', '#c87678'];
+const colors = ['#53777a', '#5c7195', '#8a6c3e', '#996543', '#955c62'];
 const titles = { overview: ['刊登与库存总览', '从库存到上架，找到每一个待补齐的销售机会。', '经营总览'], matrix: ['店铺上架矩阵', '按款式和站点展开，一眼看清各店铺的 SKU 覆盖。', '店铺上架矩阵'], detail: ['SKU 与库龄明细', '查看完整产品库、在售链接和各站点库存。', 'SKU 与库龄'], pending: ['有货待上架', '优先处理有站点库存、尚无在售链接的 SKU。', '待上架清单'], data: ['数据更新与核对', '维护源表和站点关联，让每次更新都有据可查。', '数据更新与核对'] };
 let data, model, view = 'overview', page = 1, pageSize = 35, visibleRows = [], matrixGroups = [], matrixIncludeEmpty = false;
 let filters = { site: '', shop: '', category: '', status: '', stock: '', search: '' };
 let running = false, pollTimer, lastVersion = '', searchTimer, loading = false;
 let session = { mode: 'local', canEdit: true, role: 'admin' };
+
+function setReadingSize(value, persist = true) {
+  const size = value === 'large' ? 'large' : 'comfortable';
+  document.documentElement.dataset.readingSize = size;
+  $('#reading-size').value = size;
+  if (persist) { try { localStorage.setItem('temu.readingSize', size); } catch {} }
+}
+try { setReadingSize(localStorage.getItem('temu.readingSize'), false); } catch { setReadingSize('comfortable', false); }
+$('#reading-size').addEventListener('change', e => setReadingSize(e.target.value));
 
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => $('#toast').hidden = true, 4200); }
 async function request(url, body) { return pagesRequest(url, body); }
@@ -61,10 +70,11 @@ function donutChart(rows) {
   const states = { active: 0, bundle: 0, pending: 0, check: 0 };
   for (const r of inventoryRows) { const state = model.status(r, filters.shop).code; if (state in states) states[state]++; }
   const count = inventoryRows.length, covered = states.active + states.bundle, ratio = count ? covered / count : 0;
-  const config = [['active', '单品／组合SKU在售', '#568b78'], ['bundle', '仅组合成分在售', '#8da4bd'], ['pending', '有货待上架', '#dfb56d'], ['check', '待核对站点／SKU', '#d8a096']];
+  const coverageLabel = count ? (ratio * 100).toFixed(1) + '%' : '—';
+  const config = [['active', '单品／组合SKU在售', '#567a70'], ['bundle', '仅组合成分在售', '#61799c'], ['pending', '有货待上架', '#92713b'], ['check', '待核对站点／SKU', '#9b6568']];
   let offset = 0;
   const arcs = config.map(([s, , color]) => { const length = count ? states[s] / count * 314.159 : 0; const a = `<circle cx="75" cy="75" r="50" fill="none" stroke="${color}" stroke-width="13" stroke-dasharray="${length} ${314.159 - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 75 75)"/>`; offset += length; return a; }).join('');
-  return `<section class="panel"><div class="panel-heading"><div><h2>有库存 SKU 上架覆盖</h2><p>以 SKU × 站点为统计单位</p></div></div><div class="panel-content"><div class="donut-layout"><svg class="donut" viewBox="0 0 150 150" role="img" aria-label="上架覆盖率${percent(covered, count)}"><circle cx="75" cy="75" r="50" fill="none" stroke="#eef2f0" stroke-width="13"/>${arcs}<text x="75" y="75" text-anchor="middle" fill="#34594e" font-size="24" font-weight="600">${count ? (ratio * 100).toFixed(1) + '%' : '—'}</text><text x="75" y="93" text-anchor="middle" fill="#a5b1af" font-size="9">上架覆盖率</text></svg><div class="donut-legend">${config.map(([s, label, color]) => `<div class="donut-item"><i style="background:${color}"></i><span>${label}</span><b>${num(states[s])}</b></div>`).join('')}</div></div><div class="mini-alert"><span>◷</span><span>${states.pending ? `${num(states.pending)} 个有货 SKU × 站点暂无在售链接，可安排上架。` : '当前筛选范围没有已确认的有货待上架项。'}${states.check ? ` 另有 ${num(states.check)} 项需核对。` : ''}</span><button data-go="pending">查看清单</button></div></div></section>`;
+  return `<section class="panel"><div class="panel-heading"><div><h2>有库存 SKU 上架覆盖</h2><p>以 SKU × 站点为统计单位</p></div></div><div class="panel-content"><div class="donut-layout"><svg class="donut" viewBox="0 0 150 150" role="img" aria-label="上架覆盖率${percent(covered, count)}"><circle cx="75" cy="75" r="50" fill="none" stroke="#eef2f0" stroke-width="13"/>${arcs}<text class="donut-value${coverageLabel.length > 5 ? ' compact' : ''}" x="75" y="75" text-anchor="middle" fill="#34594e" font-size="24" font-weight="600">${coverageLabel}</text><text x="75" y="93" text-anchor="middle" fill="#a5b1af" font-size="9">上架覆盖率</text></svg><div class="donut-legend">${config.map(([s, label, color]) => `<div class="donut-item"><i style="background:${color}"></i><span>${label}</span><b>${num(states[s])}</b></div>`).join('')}</div></div><div class="mini-alert"><span>◷</span><span>${states.pending ? `${num(states.pending)} 个有货 SKU × 站点暂无在售链接，可安排上架。` : '当前筛选范围没有已确认的有货待上架项。'}${states.check ? ` 另有 ${num(states.check)} 项需核对。` : ''}</span><button data-go="pending">查看清单</button></div></div></section>`;
 }
 function storeChart(rows) {
   const shops = new Map();
@@ -108,7 +118,7 @@ function detailTableBase(rows, label, before = '') {
   const count = rows.length;
   page = Math.max(1, Math.min(page, Math.ceil(count / pageSize) || 1));
   const subset = rows.slice((page - 1) * pageSize, page * pageSize);
-  return before + `<section class="panel"><div class="table-toolbar"><h2>${label}</h2><span class="result-count">${num(count)} 项</span><div class="toolbar-end"><span class="result-count">单位：件；组合套数另列</span></div></div><div class="table-wrap"><table><thead><tr><th>产品 SKU / 款式</th><th>品类</th><th>站点 / 库存池</th><th>上架状态</th><th>已上架店铺</th><th class="number">总库存 / 可组套数</th>${data.meta.bandNames.map(b => `<th class="number">${esc(b)}</th>`).join('')}<th>最老库龄段</th><th>操作</th></tr></thead><tbody>${subset.map(r => {
+  return before + `<section class="panel"><div class="table-toolbar"><h2>${label}</h2><span class="result-count">${num(count)} 项</span><div class="toolbar-end"><span class="result-count">单位：件；组合套数另列</span></div></div><div class="table-wrap"><table class="sku-table"><thead><tr><th>产品 SKU / 款式</th><th>品类</th><th>站点 / 库存池</th><th>上架状态</th><th>已上架店铺</th><th class="number">总库存 / 可组套数</th>${data.meta.bandNames.map(b => `<th class="number">${esc(b)}</th>`).join('')}<th>最老库龄段</th><th>操作</th></tr></thead><tbody>${subset.map(r => {
     const oldest = r.inv ? r.inv.bands.findLastIndex(v => v > 0) : -1;
     return `<tr><td>${productCell(r)}</td><td>${esc(r.product.category)}<span class="subcode">${esc(r.product.status || '状态待补充')}</span></td><td class="site-label">${esc(r.site)}<span class="subcode">${esc(r.pool || '未提供库存池')}</span></td><td>${badge(model.status(r, filters.shop))}</td><td>${shopBadges(r)}</td><td class="number">${stockCell(r)}</td>${[0, 1, 2, 3, 4].map(i => `<td class="number ${i > 1 && r.inv?.bands[i] > 0 ? 'old-number' : ''}">${num(r.inv?.bands[i])}</td>`).join('')}<td>${oldest >= 0 ? esc(data.meta.bandNames[oldest]) : '—'}</td><td><button class="link-button" data-detail="${esc(r.id)}">查看详情 ›</button></td></tr>`;
   }).join('')}</tbody></table>${count ? '' : '<div class="empty">没有符合条件的记录，请调整筛选条件。</div>'}</div>${pagination(count)}</section>`;

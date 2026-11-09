@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#123e39">
+  <meta name="theme-color" content="#eeeee8">
   <meta name="description" content="TEMU多店铺刊登、站点库存与库龄分析">
   <title>TEMU 运营管理台</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23143e39'/%3E%3Cpath d='M10 13h20v5h-7v14h-6V18h-7z' fill='%23e7f6a4'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.js"></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%233c5b70'/%3E%3Cpath d='M10 13h20v5h-7v14h-6V18h-7z' fill='%23f6f3e9'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css?v=ba462a7d8850">
+  <script type="module" src="./app.js?v=ba462a7d8850"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -16,17 +16,17 @@
     <div class="workspace"><span class="workspace-dot"></span> 丝一 · 半托管业务 <span class="workspace-tag">共享版</span></div>
     <div class="nav-label">工作空间</div>
     <nav id="navigation" aria-label="主导航">
-      <button class="nav-item active" data-view="overview"><span class="nav-icon">▦</span>经营总览</button>
-      <button class="nav-item" data-view="matrix"><span class="nav-icon">▤</span>店铺上架矩阵</button>
-      <button class="nav-item" data-view="detail"><span class="nav-icon">▧</span>SKU 与库龄</button>
-      <button class="nav-item" data-view="pending"><span class="nav-icon">↗</span>待上架清单<span id="pending-nav-count" class="nav-count"></span></button>
+      <button class="nav-item active" data-view="overview" aria-label="经营总览"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-text">经营总览</span><span class="nav-compact">总览</span></button>
+      <button class="nav-item" data-view="matrix" aria-label="店铺上架矩阵"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-text">店铺上架矩阵</span><span class="nav-compact">店铺矩阵</span></button>
+      <button class="nav-item" data-view="detail" aria-label="SKU 与库龄"><span class="nav-icon" aria-hidden="true">▧</span><span class="nav-text">SKU 与库龄</span><span class="nav-compact">SKU库龄</span></button>
+      <button class="nav-item" data-view="pending" aria-label="待上架清单"><span class="nav-icon" aria-hidden="true">↗</span><span class="nav-text">待上架清单</span><span class="nav-compact">待上架</span><span id="pending-nav-count" class="nav-count"></span></button>
       <div class="nav-label">管理</div>
-      <button class="nav-item" data-view="data"><span class="nav-icon">⇅</span>数据更新与核对<span id="quality-dot" class="quality-dot"></span></button>
+      <button class="nav-item" data-view="data" aria-label="数据更新与核对"><span class="nav-icon" aria-hidden="true">⇅</span><span class="nav-text">数据更新与核对</span><span class="nav-compact">数据核对</span><span id="quality-dot" class="quality-dot"></span></button>
     </nav>
     <div class="sidebar-footer"><div class="avatar">运</div><div><b>运营经理</b><small>多店铺管理工作空间</small></div></div>
   </aside>
   <div class="main-shell">
-    <header class="topbar"><div class="breadcrumb">工作空间 <span>/</span> <b id="breadcrumb-current">经营总览</b></div><div class="connection"><span></span>共享数据快照</div></header>
+    <header class="topbar"><div class="breadcrumb">工作空间 <span>/</span> <b id="breadcrumb-current">经营总览</b></div><div class="topbar-tools"><label class="reading-control">阅读字号<select id="reading-size" aria-label="阅读字号"><option value="comfortable">舒适</option><option value="large">更大</option></select></label><div class="connection"><span></span>共享数据快照</div></div></header>
     <main>
       <div class="page-heading"><div><div class="eyebrow">TEMU OPERATIONS</div><h1 id="page-title">刊登与库存总览</h1><p id="page-subtitle">从库存到上架，找到每一个待补齐的销售机会。</p></div><div class="heading-actions"><button id="export-button" class="button secondary">↓ 导出筛选结果</button><button id="update-button" hidden class="button primary">⟳ 一键更新</button></div></div>
       <div class="snapshot-line"><span class="data-dot"></span><span id="snapshot-label">正在连接数据…</span><span id="source-date" class="source-date"></span></div>
@@ -36,7 +36,7 @@
         <label>品类<select id="filter-category"><option value="">全部品类</option></select></label>
         <label>上架状态<select id="filter-status"><option value="">全部状态</option><option value="active">在售</option><option value="bundle">仅组合在售</option><option value="pending">有货待上架</option><option value="unlisted">未上架</option><option value="check">待核对</option></select></label>
         <label>库存筛选<select id="filter-stock"><option value="">全部库存</option><option value="positive">有库存</option><option value="old">有超180天库存</option><option value="old365">有365天以上库存</option><option value="unknown">库存未提供／无记录</option></select></label>
-        <label class="search-label">搜索款式 / SKU / 产品名<div class="search-input"><span>⌕</span><input id="filter-search" type="search" placeholder="输入关键词" autocomplete="off"></div></label>
+        <label class="search-label">款式 / SKU / 产品名<div class="search-input"><span>⌕</span><input id="filter-search" type="search" placeholder="输入关键词" autocomplete="off"></div></label>
         <button id="reset-filters" class="reset-button">重置</button>
       </section>
       <div id="progress-panel" class="progress-panel" hidden><div><span class="spinner"></span><b id="progress-message">正在更新…</b><span id="progress-percent"></span></div><progress id="progress-bar" max="100" value="0"></progress></div>
