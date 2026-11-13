@@ -9,6 +9,9 @@ APP = ROOT / 'apparel-dashboard'
 def read(folder):
     files = sorted((p for p in (ROOT / folder).glob('*.xlsx') if not p.name.startswith('~$')), key=lambda p: p.stat().st_mtime)
     p = files[-1]
+    return read_file(p), p.name
+
+def read_file(p):
     w = openpyxl.load_workbook(p, read_only=True, data_only=True)
     result = {}
     for s in w:
@@ -17,7 +20,7 @@ def read(folder):
         header = next(it, ())
         result[s.title] = [dict(zip(header, row)) for row in it if any(v is not None and v != '' for v in row)]
     w.close()
-    return result, p.name
+    return result
 
 def clean(v):
     return '' if v is None else str(v).strip()

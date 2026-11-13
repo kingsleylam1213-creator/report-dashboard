@@ -13,6 +13,8 @@ OLD_URL='https://apparel-operations-kings-1113.kingsleylam1213.chatgpt.site'
 FOLDERS=['产品管理','商品管理','库龄管理','新版履约单管理','销售代码']
 GH=shutil.which('gh') or str(pathlib.Path(os.environ.get('ProgramFiles','C:/Program Files'))/'GitHub CLI/gh.exe')
 LOG=APP/'outputs/github-publish'
+REMOTE_BLOBS=set()
+REMOTE_HISTORY_SHA=None
 
 class PublishError(RuntimeError): pass
 def sha(data): return hashlib.sha256(data).hexdigest()
@@ -32,7 +34,7 @@ def source_state():
         files=[p for p in (ROOT/folder).glob('*.xlsx') if not p.name.startswith('~$')]
         if not files: raise PublishError(f'未找到源文件：{folder}/*.xlsx')
         p=max(files,key=lambda p:p.stat().st_mtime)
-        result[folder]=(p.name,p.stat().st_size,p.stat().st_mtime_ns)
+        result[folder]=tuple(sorted((f.name,f.stat().st_size,f.stat().st_mtime_ns) for f in files)) if folder=='库龄管理' else (p.name,p.stat().st_size,p.stat().st_mtime_ns)
     return result
 
 def preflight():
@@ -41,6 +43,31 @@ def preflight():
     p=api('pages')
     if p.get('source')!={'branch':BRANCH,'path':'/'} or p.get('build_type')!='legacy': raise PublishError('Pages 配置已改变，预期为 master 分支根目录。未自动修改仓库设置。')
     source_state();print('GitHub 权限、Pages 配置和五类源文件检查通过。',flush=True)
+
+def remote_history_index(ref=BRANCH):
+    try:return api(f'contents/{PREFIX}/history/inventory-age/index.json?ref={ref}')
+    except PublishError as e:
+        if '(HTTP 404)' in str(e):return None
+        raise
+
+def restore_history():
+    global REMOTE_HISTORY_SHA
+    from inventory_history import HISTORY_PATH,validate,atomic_write
+    remote=remote_history_index();REMOTE_HISTORY_SHA=remote['sha'] if remote else None
+    if not remote:
+        print('线上尚无库龄历史，本次将建立首期基准。',flush=True);return
+    index=json.loads(base64.b64decode(remote['content']))
+    if index.get('schemaVersion')!=1 or not isinstance(index.get('snapshots'),list):raise PublishError('线上库龄历史索引格式异常，停止发布以保护历史。')
+    for e in index['snapshots']:
+        if not re.fullmatch('[0-9a-f]{64}',e.get('id','')) or not re.fullmatch('[0-9a-f]{40}',e.get('gitSha','')):raise PublishError('库龄历史标识异常，停止发布。')
+        path=APP/HISTORY_PATH/(e['id']+'.json')
+        content=path.read_bytes() if path.exists() else base64.b64decode(api('git/blobs/'+e['gitSha'])['content'])
+        if sha(content)!=e['sha256']:raise PublishError('本地或线上库龄历史校验失败，不覆盖原记录。')
+        snap=validate(json.loads(content))
+        if snap['id']!=e['id']:raise PublishError('库龄历史标识不一致。')
+        if not path.exists():atomic_write(path,content)
+        REMOTE_BLOBS.add(e['gitSha'])
+    print(f"已保留线上 {len(index['snapshots'])} 期库龄历史。",flush=True)
 
 def build_bundle():
     before=source_state();print('正在重新读取五类最新 Excel，不使用缓存...',flush=True)
@@ -52,7 +79,7 @@ def build_bundle():
     forbidden={'buyerName','email','phone','address','买家姓名','收货人姓名','联系电话','邮箱','地址1','地址2'}
     for key in ['orders','inventory','listings']:
         if any(forbidden & set(r) for r in d[key]): raise PublishError('网页数据含不允许上传的买家联系方式字段。')
-    assets={name:(APP/'dist'/name).read_bytes() for name in ['app.js','styles.css']}
+    assets={name:(APP/'dist'/name).read_bytes() for name in ['app.js','styles.css','history.js']}
     packed=base64.b64encode(gzip.compress(json.dumps(d,ensure_ascii=False,separators=(',',':')).encode('utf-8'),compresslevel=9,mtime=0)).decode('ascii')
     assets['data.js']=("window.DASHBOARD_DATA_READY=(async()=>{const bytes=Uint8Array.from(atob('"+packed+"'),c=>c.charCodeAt(0));const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));window.DASHBOARD_DATA=JSON.parse(await new Response(stream).text());})();\n").encode('utf-8')
     index=(APP/'dist/index.html').read_text(encoding='utf-8')
@@ -60,14 +87,16 @@ def build_bundle():
         index,n=re.subn(r'((?:src|href)=")'+re.escape(name)+r'(?:\?[^\"]*)?"',lambda m:m[1]+name+'?v='+sha(value)[:16]+'"',index)
         if n!=1: raise PublishError('资源引用异常：'+name)
     (APP/'dist/index.html').write_text(index,encoding='utf-8');assets['index.html']=index.encode('utf-8')
-    snapshot={'generatedAt':d['meta']['generatedAt'],'sources':d['meta']['sources'],'counts':d['meta']['counts'],'version':sha(assets['data.js']),'assets':{k:sha(v) for k,v in assets.items()},'url':URL}
+    snapshot={'generatedAt':d['meta']['generatedAt'],'sources':d['meta']['sources'],'counts':d['meta']['counts'],'inventoryHistorySnapshots':len(d['inventoryHistory']['snapshots']),'version':sha(assets['data.js']),'assets':{k:sha(v) for k,v in assets.items()},'url':URL}
     assets['snapshot.json']=json.dumps(snapshot,ensure_ascii=False,indent=2).encode('utf-8')
     preview=LOG/'preview';preview.mkdir(parents=True,exist_ok=True)
     for name,value in assets.items(): (preview/name).write_bytes(value)
     bundle={f'{PREFIX}/{k}':v for k,v in assets.items()}
     # Explicit allowlist: raw Excel, local caches and login credentials cannot be uploaded.
-    for name in ['publish_github.py','build_dashboard_data.py','prepare_data.py','publish-github.ps1']:
+    for name in ['publish_github.py','build_dashboard_data.py','prepare_data.py','inventory_history.py','publish-github.ps1']:
         bundle[f'{PREFIX}/tools/{name}']=(APP/'tools'/name).read_bytes()
+    for path in (APP/'history/inventory-age').glob('*.json'):
+        bundle[f'{PREFIX}/history/inventory-age/{path.name}']=path.read_bytes()
     bundle[f'{PREFIX}/README.md']=(APP/'README.md').read_bytes()
     bundle['更新服饰看板.cmd']=(ROOT/'更新线上看板.cmd').read_bytes()
     print(f"数据已构建：订单 {len(d['orders']):,} 行，商品 {d['meta']['counts']['listingRows']:,} 行，库存 {len(d['inventory']):,} 行。",flush=True)
@@ -102,6 +131,8 @@ def update_home(original):
 
 def blob(content):
     if len(content)>90*1024*1024: raise PublishError('网页单文件超过90MB，停止发布。')
+    known=hashlib.sha1(b'blob '+str(len(content)).encode()+b'\0'+content).hexdigest()
+    if known in REMOTE_BLOBS:return known
     return api('git/blobs','POST',{'content':base64.b64encode(content).decode('ascii'),'encoding':'base64'})['sha']
 
 def push_bundle(bundle,snapshot):
@@ -112,6 +143,8 @@ def push_bundle(bundle,snapshot):
         entries.append({'path':k,'mode':'100644','type':'blob','sha':blob(v)})
     for attempt in range(3):
         head=api(f'git/ref/heads/{BRANCH}')['object']['sha'];parent=api(f'git/commits/{head}')
+        history_index=remote_history_index(head)
+        if (history_index['sha'] if history_index else None)!=REMOTE_HISTORY_SHA:raise PublishError('库龄历史已被其他更新修改。请重新运行以合并最新历史，未覆盖其记录。')
         home=api(f'contents/home.html?ref={head}')
         home_sha=blob(update_home(base64.b64decode(home['content'])))
         tree=api('git/trees','POST',{'base_tree':parent['tree']['sha'],'tree':entries+[{'path':'home.html','mode':'100644','type':'blob','sha':home_sha}]})
@@ -160,6 +193,7 @@ def main():
         except OSError as e: raise PublishError('另一个线上更新正在运行，请等待完成。') from e
         if not args.build_only: preflight()
         if args.check_only: print('配置检查完成，没有上传数据。');return 0
+        if not args.build_only:restore_history()
         bundle,snapshot=build_bundle();result['snapshot']=snapshot
         if args.build_only: print('本地构建及上传文件范围检查完成，没有上传数据。');return 0
         result['commit']=push_bundle(bundle,snapshot);wait_for_pages(result['commit'],snapshot,args.timeout)

@@ -159,6 +159,8 @@ if __name__=='__main__':
     else:
         for k,v in [('products','产品管理'),('listings','商品管理'),('inventory','库龄管理'),('orders','新版履约单管理'),('salesCodes','销售代码')]: raw[k],names[k]=read(v)
     d=build(raw,names)
+    from inventory_history import archive_inventory
+    d['inventoryHistory']=archive_inventory(APP,d)
     (APP/'dist').mkdir(exist_ok=True)
     (APP/'dist/data.js').write_text('window.DASHBOARD_DATA='+json.dumps(d,ensure_ascii=False,separators=(',',':'))+';\n',encoding='utf-8')
     (APP/'data').mkdir(exist_ok=True)
