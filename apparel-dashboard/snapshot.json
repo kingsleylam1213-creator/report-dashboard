@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-11-13T14:54:15",
+  "sources": {
+    "products": "导出产品20261113105816.xlsx",
+    "listings": "导出商品20261113135801.xlsx",
+    "inventory": "ExportWitInventoryAge20261113105929.xlsx",
+    "orders": "linjunquan_FT202611131311519单品SKU维度导出包裹.xlsx",
+    "salesCodes": "2026年10月惠时尚销售代码表-BU1-服饰.xlsx"
+  },
+  "counts": {
+    "products": 22056,
+    "combos": 3698,
+    "listingRows": 4687,
+    "listings": 4193,
+    "inventoryRows": 783,
+    "orderRows": 5705,
+    "salesCodeRows": 57
+  },
+  "version": "ad44c3f81081863e8e7e6ea799b5c1e45fdcd0645b22cc40acad4e444ecb6510",
+  "assets": {
+    "app.js": "fc8ab3e1cd98511be88ef046bac2d5a7432026f0f809ba0574850a8424eda992",
+    "styles.css": "3ce8c00a2fdb092d2899148f2a3bd5bb0a4c700b77eb0d5b8f69893e2c91c0b6",
+    "data.js": "ad44c3f81081863e8e7e6ea799b5c1e45fdcd0645b22cc40acad4e444ecb6510",
+    "index.html": "beadcfb8142753ba97550c924281fa3d938a18514c3326130f8dd3a5810f4402"
+  },
+  "url": "https://kingsleylam1213-creator.github.io/report-dashboard/apparel-dashboard/"
+}
