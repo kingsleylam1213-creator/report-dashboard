@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-13T14:54:15",
+  "generatedAt": "2026-11-13T15:08:19",
   "sources": {
     "products": "导出产品20261113105816.xlsx",
     "listings": "导出商品20261113135801.xlsx",
@@ -16,12 +16,12 @@
     "orderRows": 5705,
     "salesCodeRows": 57
   },
-  "version": "ad44c3f81081863e8e7e6ea799b5c1e45fdcd0645b22cc40acad4e444ecb6510",
+  "version": "a294f5432e8f69b3fe4887a515a01d757d40477544a43bf6e4d8bc62e0d7e9a9",
   "assets": {
     "app.js": "fc8ab3e1cd98511be88ef046bac2d5a7432026f0f809ba0574850a8424eda992",
     "styles.css": "3ce8c00a2fdb092d2899148f2a3bd5bb0a4c700b77eb0d5b8f69893e2c91c0b6",
-    "data.js": "ad44c3f81081863e8e7e6ea799b5c1e45fdcd0645b22cc40acad4e444ecb6510",
-    "index.html": "beadcfb8142753ba97550c924281fa3d938a18514c3326130f8dd3a5810f4402"
+    "data.js": "a294f5432e8f69b3fe4887a515a01d757d40477544a43bf6e4d8bc62e0d7e9a9",
+    "index.html": "86b942384e50beea2f41a75910a0367fcaa83440c5079708d509ce1a623d1cc2"
   },
   "url": "https://kingsleylam1213-creator.github.io/report-dashboard/apparel-dashboard/"
 }
