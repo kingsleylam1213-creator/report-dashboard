@@ -18,7 +18,7 @@ let session = { mode: 'local', canEdit: true, role: 'admin' };
 let companyTones = new Map();
 
 function setReadingSize(value, persist = true) {
-  const size = value === 'large' ? 'large' : 'comfortable';
+  const size = ['small', 'comfortable', 'large'].includes(value) ? value : 'comfortable';
   document.documentElement.dataset.readingSize = size;
   $('#reading-size').value = size;
   if (persist) { try { localStorage.setItem('temu.readingSize', size); } catch {} }

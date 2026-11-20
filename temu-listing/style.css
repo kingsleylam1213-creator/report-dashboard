@@ -54,6 +54,7 @@
 .age-band-2 { --band-color: var(--age-2); --band-ink: #79551e; --band-bg: #fff8e9; --band-alt: #fcf3de; --band-head: #f6e8c8; }
 .age-band-3 { --band-color: var(--age-3); --band-ink: #8a4c2d; --band-bg: #fff4ec; --band-alt: #fbece1; --band-head: #f6dfcf; }
 .age-band-4 { --band-color: var(--age-4); --band-ink: #903d60; --band-bg: #fff0f5; --band-alt: #fae6ef; --band-head: #f2d7e3; }
+:root[data-reading-size="small"] { font-size: 14px; }
 :root[data-reading-size="large"] { font-size: 18px; }
 * { box-sizing: border-box; }
 body { margin: 0; }
