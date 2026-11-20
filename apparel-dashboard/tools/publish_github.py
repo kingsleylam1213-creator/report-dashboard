@@ -34,7 +34,7 @@ def source_state():
         files=[p for p in (ROOT/folder).glob('*.xlsx') if not p.name.startswith('~$')]
         if not files: raise PublishError(f'未找到源文件：{folder}/*.xlsx')
         p=max(files,key=lambda p:p.stat().st_mtime)
-        result[folder]=tuple(sorted((f.name,f.stat().st_size,f.stat().st_mtime_ns) for f in files)) if folder=='库龄管理' else (p.name,p.stat().st_size,p.stat().st_mtime_ns)
+        result[folder]=tuple(sorted((f.name,f.stat().st_size,f.stat().st_mtime_ns) for f in files)) if folder in ('库龄管理','新版履约单管理') else (p.name,p.stat().st_size,p.stat().st_mtime_ns)
     return result
 
 def preflight():
@@ -70,7 +70,7 @@ def restore_history():
     print(f"已保留线上 {len(index['snapshots'])} 期库龄历史。",flush=True)
 
 def build_bundle():
-    before=source_state();print('正在重新读取五类最新 Excel，不使用缓存...',flush=True)
+    before=source_state();print('正在重读 Excel：订单合并全部文件，其余主档取最新，库龄保留历史；不使用缓存...',flush=True)
     r=subprocess.run([sys.executable,'-X','utf8',str(APP/'tools/build_dashboard_data.py')],capture_output=True,text=True,encoding='utf-8',cwd=APP)
     if r.returncode: raise PublishError(r.stderr or r.stdout or '数据构建失败。')
     if before!=source_state(): raise PublishError('构建过程中源文件发生变化，请结束导出操作后重试。')
@@ -87,7 +87,7 @@ def build_bundle():
         index,n=re.subn(r'((?:src|href)=")'+re.escape(name)+r'(?:\?[^\"]*)?"',lambda m:m[1]+name+'?v='+sha(value)[:16]+'"',index)
         if n!=1: raise PublishError('资源引用异常：'+name)
     (APP/'dist/index.html').write_text(index,encoding='utf-8');assets['index.html']=index.encode('utf-8')
-    snapshot={'generatedAt':d['meta']['generatedAt'],'sources':d['meta']['sources'],'counts':d['meta']['counts'],'inventoryHistorySnapshots':len(d['inventoryHistory']['snapshots']),'version':sha(assets['data.js']),'assets':{k:sha(v) for k,v in assets.items()},'url':URL}
+    snapshot={'generatedAt':d['meta']['generatedAt'],'sources':d['meta']['sources'],'counts':d['meta']['counts'],'orderImport':d['meta'].get('orderImport'),'inventoryHistorySnapshots':len(d['inventoryHistory']['snapshots']),'version':sha(assets['data.js']),'assets':{k:sha(v) for k,v in assets.items()},'url':URL}
     assets['snapshot.json']=json.dumps(snapshot,ensure_ascii=False,indent=2).encode('utf-8')
     preview=LOG/'preview';preview.mkdir(parents=True,exist_ok=True)
     for name,value in assets.items(): (preview/name).write_bytes(value)

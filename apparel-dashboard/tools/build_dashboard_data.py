@@ -1,6 +1,6 @@
 """Product-master matching. Never strip or blindly split SKU hyphens."""
 import collections, datetime, json, pathlib, unicodedata, re
-from prepare_data import clean, read
+from prepare_data import clean, read, read_orders
 
 APP=pathlib.Path(__file__).resolve().parents[1]
 AGE=['0-90天','91-180天','181-270天','271-365天','365天以上']
@@ -138,14 +138,16 @@ def build(raw, names):
         inventory.append({'sku':key or clean(r.get('产品SKU')),'matched':key in products,'warehouse':clean(r.get('仓库名称')),'goodsCode':clean(r.get('货物编码')),'owner':clean(r.get('货主')),'category':clean(r.get('一级品类'))+'/'+clean(r.get('二级品类')),'ages':ages,'qty':sum(ages) if all(v is not None for v in ages) else None,'asOf':clean(r.get('生成库龄时间')),'syncedAt':clean(r.get('API同步时间')),'sourceRow':rownum})
     orders=[]
     for rownum,r in enumerate(next(iter(raw['orders'].values())),2):
+        rownum = r.get('_sourceRow', rownum)
         key,method,candidates=match(r.get('对应的单品sku'))
         if key not in products:
             issues.append({'source':'订单','row':rownum,'explicitSKU':clean(r.get('对应的单品sku')),'method':method,'candidates':candidates})
         # Export is already exploded to individual SKU quantity; DO NOT multiply again.
-        orders.append({'sku':key or clean(r.get('对应的单品sku')),'matched':key in products,**channel(r,'店铺'),'orderId':clean(r.get('平台订单号')),'fulfillmentId':clean(r.get('履约单号')),'lineId':clean(r.get('LineItemId')),'platformSKU':clean(r.get('平台SKU')),'qty':num(r.get('对应单品sku数量')),'status':clean(r.get('履约单状态')),'createdAt':clean(r.get('创建日期'))[:10],'paidAt':clean(r.get('付款时间'))[:10],'shippedAt':clean(r.get('发货时间'))[:10],'warehouse':clean(r.get('发货仓')),'seller':clean(r.get('销售')),'sourceRow':rownum})
+        orders.append({'sku':key or clean(r.get('对应的单品sku')),'matched':key in products,**channel(r,'店铺'),'orderId':clean(r.get('平台订单号')),'fulfillmentId':clean(r.get('履约单号')),'lineId':clean(r.get('LineItemId')),'platformSKU':clean(r.get('平台SKU')),'qty':num(r.get('对应单品sku数量')),'status':clean(r.get('履约单状态')),'createdAt':clean(r.get('创建日期'))[:10],'paidAt':clean(r.get('付款时间'))[:10],'shippedAt':clean(r.get('发货时间'))[:10],'warehouse':clean(r.get('发货仓')),'seller':clean(r.get('销售')),'sourceFile':r.get('_sourceFile',names['orders']),'sourceSheet':r.get('_sourceSheet',''),'sourceRow':rownum})
     file_dates=[m.group(0) for name in names.values() for m in re.finditer(r'20\d{6}',name)]
     export_date=datetime.datetime.strptime(max(file_dates),'%Y%m%d').date().isoformat() if file_dates else datetime.date.today().isoformat()
     meta={'title':'服饰经营数据看板','exportDate':export_date,'generatedAt':datetime.datetime.now().isoformat(timespec='seconds'),'sources':names,'counts':{'products':len(products),'combos':len(combos),'listingRows':originalCount,'listings':len(listings),'inventoryRows':len(inventory),'orderRows':len(orders),'salesCodeRows':len(codes)},'matchCounts':dict(matchCounts),'ageLabels':AGE}
+    if 'orderImport' in raw: meta['orderImport'] = raw['orderImport']
     return {'meta':meta,'products':list(products.values()),'listings':list(listings.values()),'inventory':inventory,'orders':orders,'issues':issues,'salesCodes':codes}
 
 if __name__=='__main__':
@@ -157,7 +159,9 @@ if __name__=='__main__':
         folders={'products':'产品管理','listings':'商品管理','inventory':'库龄管理','orders':'新版履约单管理','salesCodes':'销售代码'}
         for k,v in folders.items(): names[k]=max((APP.parent/v).glob('*.xlsx'),key=lambda p:p.stat().st_mtime).name
     else:
-        for k,v in [('products','产品管理'),('listings','商品管理'),('inventory','库龄管理'),('orders','新版履约单管理'),('salesCodes','销售代码')]: raw[k],names[k]=read(v)
+        for k,v in [('products','产品管理'),('listings','商品管理'),('inventory','库龄管理'),('orders','新版履约单管理'),('salesCodes','销售代码')]:
+            if k == 'orders': raw[k],names[k],raw['orderImport'] = read_orders()
+            else: raw[k],names[k]=read(v)
     d=build(raw,names)
     from inventory_history import archive_inventory
     d['inventoryHistory']=archive_inventory(APP,d)

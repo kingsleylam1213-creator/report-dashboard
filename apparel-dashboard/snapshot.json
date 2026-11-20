@@ -1,29 +1,84 @@
 {
-  "generatedAt": "2026-11-13T15:41:09",
+  "generatedAt": "2026-11-20T17:24:40",
   "sources": {
-    "products": "导出产品20261113105816.xlsx",
-    "listings": "导出商品20261113135801.xlsx",
-    "inventory": "ExportWitInventoryAge20261113105929.xlsx",
-    "orders": "linjunquan_FT202611131311519单品SKU维度导出包裹.xlsx",
+    "products": "导出产品20261120163107.xlsx",
+    "listings": "导出商品20261120163428.xlsx",
+    "inventory": "ExportWitInventoryAge20261120163131.xlsx",
+    "orders": "linjunquan_FT202611131311519单品SKU维度导出包裹.xlsx / linjunquan_FT202611201611544单品SKU维度导出包裹.xlsx",
     "salesCodes": "2026年10月惠时尚销售代码表-BU1-服饰.xlsx"
   },
   "counts": {
     "products": 22056,
-    "combos": 3698,
-    "listingRows": 4687,
-    "listings": 4193,
-    "inventoryRows": 783,
-    "orderRows": 5705,
+    "combos": 3862,
+    "listingRows": 3549,
+    "listings": 3055,
+    "inventoryRows": 779,
+    "orderRows": 5769,
     "salesCodeRows": 57
   },
-  "inventoryHistorySnapshots": 1,
-  "version": "a975e5d1a26212da7ed2ee037878d2e5109e1470d4839dfcf7acca5f81fb7ca9",
+  "orderImport": {
+    "files": [
+      {
+        "file": "linjunquan_FT202611131311519单品SKU维度导出包裹.xlsx",
+        "inputRows": 5705,
+        "modifiedAt": "2026-11-13T13:58:29",
+        "dateRanges": {
+          "创建日期": {
+            "min": "2026-01-12",
+            "max": "2026-11-12",
+            "missing": 0
+          },
+          "付款时间": {
+            "min": "2026-01-12",
+            "max": "2026-11-12",
+            "missing": 100
+          },
+          "发货时间": {
+            "min": "2026-01-13",
+            "max": "2026-11-13",
+            "missing": 129
+          }
+        },
+        "retainedRows": 5705
+      },
+      {
+        "file": "linjunquan_FT202611201611544单品SKU维度导出包裹.xlsx",
+        "inputRows": 64,
+        "modifiedAt": "2026-11-20T16:52:52",
+        "dateRanges": {
+          "创建日期": {
+            "min": "2026-11-13",
+            "max": "2026-11-19",
+            "missing": 0
+          },
+          "付款时间": {
+            "min": "2026-11-13",
+            "max": "2026-11-19",
+            "missing": 6
+          },
+          "发货时间": {
+            "min": "2026-11-13",
+            "max": "2026-11-20",
+            "missing": 0
+          }
+        },
+        "retainedRows": 64
+      }
+    ],
+    "inputRows": 5769,
+    "retainedRows": 5769,
+    "replacedRows": 0,
+    "unidentifiedRows": 0,
+    "rule": "合并全部订单文件；同一唯一业务明细取修改时间较新的版本；缺少标识不猜测去重；跨文件非唯一重叠停止构建。"
+  },
+  "inventoryHistorySnapshots": 2,
+  "version": "b60cd43fce8aa4f026d94832c4c38f2beae2475ca7e22005b424e73d8709424c",
   "assets": {
-    "app.js": "d1073eb6aa107d5dd5abaee032c8d255d8e241e1c172636eff39da1ec7d9854b",
+    "app.js": "25cd23b32bef9baaf9cec53f43f19402de8c1c6799eb9290b6dddd0c0b40552d",
     "styles.css": "b3ac76f0374a4a5532f02f388aa714c72d498da8499966be2e259c9e4bb2fc41",
     "history.js": "b2da95bf17577408b05d761973b0bbbf130a0f5c487598e311dd94d9bc6022de",
-    "data.js": "a975e5d1a26212da7ed2ee037878d2e5109e1470d4839dfcf7acca5f81fb7ca9",
-    "index.html": "bee4b7a5148cb8aaaf3588a02fea7dc8c148219113b920279ce054b5fb162cb0"
+    "data.js": "b60cd43fce8aa4f026d94832c4c38f2beae2475ca7e22005b424e73d8709424c",
+    "index.html": "2d0d2b916da8e05391efde2b223b0660cfb1ba72622be4e7d91a236a5608f48b"
   },
   "url": "https://kingsleylam1213-creator.github.io/report-dashboard/apparel-dashboard/"
 }
