@@ -290,7 +290,7 @@
   <div class="pwdbox">
     <div class="pwdlock">&#x1F510;</div>
     <div class="pwdtitle">
-      <h2>&#20840;&#21697;&#38144;&#21806;&#19982;&#36864;&#27454;&#25253;&#21578;</h2>
+      <h2>&#25253;&#34920;&#20013;&#24515;</h2>
       <p>&#27492;&#39029;&#38754;&#24050;&#21152;&#23494;&#65292;&#35831;&#36755;&#20837;&#35775;&#38382;&#23494;&#30721;</p>
     </div>
     <input type="password" id="pwd-input" placeholder="&#35831;&#36755;&#20837;&#23494;&#30721;" autofocus onkeydown="if(event.key==='Enter')pwdCheck()">
@@ -301,6 +301,7 @@
 <script>
 (function(){var K='__hst_auth';function h(s){var a=0;for(var i=0;i<s.length;i++){a=((a<<5)-a)+s.charCodeAt(i);a|=0;}return a;}var PH=h('sy18929531199');if(Number(sessionStorage.getItem(K))===PH){document.getElementById('pwd-overlay').remove();}window.pwdCheck=function(){var v=document.getElementById('pwd-input').value;if(h(v)===PH){sessionStorage.setItem(K,PH);document.getElementById('pwd-overlay').remove();}else{document.getElementById('pwd-err').textContent='密码错误，请重试';document.getElementById('pwd-input').select();}};})();
 </script>
+
 
 
 
